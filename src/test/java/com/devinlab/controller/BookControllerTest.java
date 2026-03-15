@@ -3,6 +3,7 @@ package com.devinlab.controller;
 import com.devinlab.model.Book;
 import com.devinlab.service.BookService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,6 +15,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,15 +125,16 @@ class BookControllerTest {
     }
 
     @Test
-    void updateBook_shouldReturn500WhenNotFound() throws Exception {
+    void updateBook_shouldThrowWhenNotFound() throws Exception {
         Book bookDetails = new Book(null, "Updated Title", "Updated Author", "978-1111111111", 59.99);
         when(bookService.updateBook(eq(99L), any(Book.class)))
                 .thenThrow(new RuntimeException("Book not found with id: 99"));
 
-        mockMvc.perform(put("/api/books/99")
+        ServletException exception = assertThrows(ServletException.class, () ->
+                mockMvc.perform(put("/api/books/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(bookDetails)))
-                .andExpect(status().isInternalServerError());
+                        .content(objectMapper.writeValueAsString(bookDetails))));
+        assertInstanceOf(RuntimeException.class, exception.getCause());
     }
 
     @Test
@@ -144,11 +148,12 @@ class BookControllerTest {
     }
 
     @Test
-    void deleteBook_shouldReturn500WhenNotFound() throws Exception {
+    void deleteBook_shouldThrowWhenNotFound() {
         doThrow(new RuntimeException("Book not found with id: 99"))
                 .when(bookService).deleteBook(99L);
 
-        mockMvc.perform(delete("/api/books/99"))
-                .andExpect(status().isInternalServerError());
+        ServletException exception = assertThrows(ServletException.class, () ->
+                mockMvc.perform(delete("/api/books/99")));
+        assertInstanceOf(RuntimeException.class, exception.getCause());
     }
 }
